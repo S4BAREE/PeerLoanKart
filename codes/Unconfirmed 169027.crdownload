@@ -1,0 +1,486 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# # Import Libraries 
+
+# In[1]:
+
+
+import pandas as pd
+import numpy as np 
+import matplotlib.pyplot as plt 
+import seaborn as sns
+import os 
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import classification_report,accuracy_score,confusion_matrix
+from sklearn.ensemble import RandomForestClassifier,ExtraTreesClassifier
+from sklearn.model_selection import GridSearchCV
+from sklearn.svm import SVC
+from xgboost import XGBClassifier
+import pickle
+from sklearn.model_selection import cross_val_score
+
+
+# ## Load Data Set 
+
+# In[2]:
+
+
+os.chdir('D:\PeerLoanKart')
+
+
+# In[3]:
+
+
+df= pd.read_csv('loan_data.csv')
+df
+
+
+# ### Data Checks  
+
+# In[4]:
+
+
+df.shape
+
+
+# In[5]:
+
+
+df.isna().sum()
+
+
+# In[6]:
+
+
+df.info()
+
+
+# In[7]:
+
+
+df.describe()
+
+
+# #### Create a histogram of two FICO distributions on top of each other, one for each credit.policy outcome.
+
+# In[9]:
+
+
+plt.figure(figsize=(10,6))
+df[df['credit.policy']==1]['fico'].hist(alpha=0.5,color ='b',
+                                       bins=30,label='credit.policy')
+df[df['credit.policy']==0]['fico'].hist(alpha=0.5,color ='r',
+                                       bins=30,label='credit.policy')
+plt.legend()
+plt.xlabel('FICO')
+plt.savefig('histogram of two FICO distributions on credit policy')
+
+
+# #### Relation between not.fully.paid and fico (credit rating) 
+
+# In[10]:
+
+
+plt.figure(figsize=(10,6))
+df[df['not.fully.paid']==1]['fico'].hist(alpha=0.6,color='b',
+                                        bins=30,label='not.fully.paid')
+df[df['not.fully.paid']==0]['fico'].hist(alpha=0.5,color='r',
+                                        bins=30,label='not.fully.paid')
+plt.legend()
+plt.xlabel('FICO')
+plt.savefig('histogram of two FICO distributions')
+
+
+# #### Create a count plot using seaborn showing the counts of loans by purpose, with the color hue defined by not.fully.paid
+
+# In[11]:
+
+
+plt.figure(figsize=(11,7))
+sns.countplot(x='purpose',hue='not.fully.paid',data=df,palette='Set1')
+
+
+# #### Data Checks - Check number of columns with type Object for Label . One hot encoding 
+
+# In[14]:
+
+
+df.info()
+
+
+# #### One hot encoding column – purpose  
+# 
+
+# In[17]:
+
+
+final_data = pd.get_dummies(df,columns= cat_feats,drop_first =True)
+final_data
+
+
+# #### Category Columns 
+
+# In[16]:
+
+
+cat_feats =['purpose']
+cat_feats
+
+
+# #### Check Number of columns, number of columns increased   
+
+# In[18]:
+
+
+final_data.info()
+
+
+# #### Create variable X and Y , the train test split. 
+
+# In[19]:
+
+
+x= final_data.drop('not.fully.paid',axis=1)
+y= final_data['not.fully.paid']
+xtrain,xtest,ytrain,ytest= train_test_split(x,y,test_size=0.30,random_state=22)
+
+
+# In[20]:
+
+
+x
+
+
+# In[21]:
+
+
+co_rel=x.corr()
+display(co_rel)
+
+
+# In[22]:
+
+
+plt.rcParams['figure.figsize']=(20,12)
+sns.set(font_scale=1)
+sns.heatmap(co_rel,cmap='coolwarm',annot=True)
+plt.show()
+plt.savefig('Heatmap.png')
+
+
+# In[23]:
+
+
+plt.rcParams['figure.figsize']=(20,12)
+f,(ax1,ax2,ax3,ax4,ax5)=plt.subplots(1,5)
+sns.boxplot ( x= df['not.fully.paid'], y = df['credit.policy'], ax = ax1)
+sns.boxplot (x= df['not.fully.paid'], y = df['int.rate'], ax = ax2)
+sns.boxplot (x= df['not.fully.paid'], y = df['installment'], ax = ax3)
+sns.boxplot (x= df['not.fully.paid'], y = df['log.annual.inc'] , ax = ax4)
+sns.boxplot (x= df['not.fully.paid'], y = df['dti']  , ax = ax5)
+f .tight_layout()
+
+f, (ax1,ax2,ax3,ax4,ax5) = plt.subplots (1,5)
+sns.boxplot (x= df['not.fully.paid'], y = df['fico'], ax = ax1)
+sns.boxplot (x= df['not.fully.paid'], y = df['days.with.cr.line'] , ax = ax2)
+sns.boxplot (x= df['not.fully.paid'], y = df['revol.bal'] , ax = ax3)
+sns.boxplot (x= df['not.fully.paid'], y = df['revol.util'], ax = ax4)
+sns.boxplot (x= df['not.fully.paid'], y = df['inq.last.6mths'] , ax = ax5)
+f .tight_layout()
+
+
+# #### Create Decision Tree 
+
+# In[24]:
+
+
+DC = DecisionTreeClassifier()
+DC.fit(xtrain,ytrain)
+
+
+# #### Predictions 
+
+# In[25]:
+
+
+ypred = DC.predict(xtest)
+ypred
+
+
+# #### Check Accuracy  
+
+# In[26]:
+
+
+
+print (accuracy_score(ytest,ypred))
+print(confusion_matrix(ytest,ypred))
+print(classification_report(ytest,ypred))
+
+
+# #### Create Random Forest  
+
+# In[29]:
+
+
+from sklearn.ensemble import RandomForestClassifier
+rfc = RandomForestClassifier(n_estimators=600)
+rfc.fit(xtrain,ytrain)
+
+
+# In[30]:
+
+
+RC = RandomForestClassifier(n_estimators=600)
+RC.fit(xtrain,ytrain)
+
+
+# #### Predictions
+
+# In[31]:
+
+
+ypred = RC.predict(xtest)
+ypred
+
+
+# #### Check Accuracy  
+
+# In[32]:
+
+
+print (accuracy_score(ytest,ypred))
+print(confusion_matrix(ytest,ypred))
+print(classification_report(ytest,ypred))
+
+
+# #### Create ExtraTrees Classifier
+
+# In[33]:
+
+
+EC= ExtraTreesClassifier(n_estimators=600)
+EC.fit(xtrain,ytrain)
+
+
+# #### Prediction
+
+# In[34]:
+
+
+ypred = EC.predict(xtest)
+ypred
+
+
+# #### Checking Accuracies
+
+# In[35]:
+
+
+
+print (accuracy_score(ytest,ypred))
+print(confusion_matrix(ytest,ypred))
+print(classification_report(ytest,ypred))
+
+
+# # GridSearchCV
+# #### Defining the Function for the ML algorithms using GridSearchCV Algorithm and splitting the dependent variable & independent variable into training and test dataset and Predicting the Dependent Variable by fitting the given model and create the pickle file of the model with the given Algo_name. Further getting the Best Parameters of the algorithm, Accuracy Score, Classification Report and Confusion Matrix between the predicted values and dependent test dataset.
+
+# In[36]:
+
+
+def FitModel (x,y,algo_name,algorithm, gridsearchParams,cv):
+    np.random.seed(10)
+    xtrain,xtest,ytrain,ytest=train_test_split(x,y,test_size=0.2)
+    grid=GridSearchCV(estimator=algorithm, param_grid = gridsearchParams,
+                     cv=cv,scoring='accuracy',verbose=1,n_jobs=-1)
+    grid_result = grid.fit(xtrain,ytrain)
+    best_params = grid_result.best_params_
+    pred =  grid_result.predict(xtest)
+    cm = confusion_matrix (ytest,pred)
+    print (pred)
+    pickle.dump(grid_result,open(algo_name,'wb'))
+    
+    print ('Best Params :', best_params)
+    print ('Classification Report:',classification_report(ytest,pred))
+    print ('Accuracy Score', (accuracy_score(ytest,pred)))
+    print ('Confusion Matrix :\n',cm)
+
+
+# In[37]:
+
+
+x
+
+
+# In[38]:
+
+
+y
+
+
+# #### SVC using GridSearchCV
+
+# In[39]:
+
+
+param = {
+            'C': [1,100],
+            'gamma':[1, 3,5,10, 100]
+         }
+
+FitModel (x,y,'SVC',SVC(), param, cv =10)
+
+
+# ### RandomForestClassifier using GridSearchCV
+
+# In[40]:
+
+
+param = {'n_estimators':[100,500,1000]}
+FitModel(x,y,'Random Forest',RandomForestClassifier(),param,cv=10)
+
+
+# In[41]:
+
+
+np.random.seed(10)
+xtrain,xtest,ytrain,ytest=train_test_split(x,y,test_size=0.2)
+forest = RandomForestClassifier(n_estimators=500)
+fit= forest.fit(xtrain,ytrain)
+accuracy=fit.score(xtest,ytest)
+predict=fit.predict(xtest)
+cmatrix=confusion_matrix(ytest,predict)
+print ('Classification Report:',classification_report(ytest,predict))
+print ('Accuracy Score', (accuracy_score(ytest,predict)))
+print ('Accuracy of Random Forest ', (accuracy))
+print ('Confusion Matrix :\n',cmatrix)
+
+
+# In[42]:
+
+
+importances = forest.feature_importances_
+indices=np.argsort(importances)[::-1]
+print('Feature Ranking.')
+for f in range (x.shape[1]):
+    print('Feature %s(%f)' %(list(x)[f],importances[indices[f]]))
+
+
+# In[43]:
+
+
+feat_imp = pd.DataFrame({'Feature':list(x),'Gini importance':
+                        importances[indices]})
+plt.rcParams['figure.figsize']=(12,12)
+sns.set_style('whitegrid')
+ax=sns.barplot(x='Gini importance',y = 'Feature',data=feat_imp)
+ax.set(xlabel='Gini Importances')
+plt.show()
+feat_imp.index=feat_imp.Feature
+plt.savefig('feat_imp')
+
+
+# #### Using SMOTE
+
+# In[44]:
+
+
+from imblearn.over_sampling import SMOTE
+
+
+# In[45]:
+
+
+sm=SMOTE(random_state=42)
+xres,yres=sm.fit_resample(x,y)
+
+
+# In[46]:
+
+
+display(yres.value_counts())
+
+
+# In[47]:
+
+
+param={'n_estimators':[100,500,1000]}
+FitModel(xres,yres,'RandomForest',RandomForestClassifier(),param,cv=10)
+
+
+# ### "With respect to feature Importance of the independent variable reducing the dimensions of independent variable for reducing the complexity of model fitting."
+
+# In[49]:
+
+
+feat_imp.index = feat_imp.Feature
+feat_to_keep = feat_imp.iloc[:15].index
+display (type(feat_to_keep),feat_to_keep)
+
+
+# ### "Passing the Resampled variable after dimensional reduction and Running the function with some appropriate parameters and fitting the Random Forest Classifiers Algorithm and getting the Best Parameters of the algorithm, Accuracy Score, Classification Report and Confusion Matrix between the predicted values and dependent test dataset and also the pickle file with the name Random Forest_resample.
+
+# In[52]:
+
+
+X_res = pd.DataFrame(xres)
+Y_res = pd.DataFrame(yres)
+X_res.columns = x.columns
+param = { 'n_estimators': [100,500,1000]  }
+FitModel (xres [feat_to_keep], yres ,'Random Forest_resample',RandomForestClassifier(), param, cv =10)
+
+
+# #### "Passing the Resampled variable after dimensional reduction and Running the function with some appropriate parameters and fitting the Support Vector Machine Classifiers Algorithm and getting the Best Parameters of the algorithm, Accuracy Score, Classification Report and Confusion Matrix between the predicted values and dependent test dataset and also the pickle file with the name SVC_resample."
+# 
+# 
+
+# In[53]:
+
+
+param = { 'C': [1,100,1000],
+        'gamma':[1, 3,5,10, 100,1000]
+         }
+FitModel (xres [feat_to_keep], yres,'SVC_resample',SVC(), param, cv =5)
+
+
+# #### "Passing the Resampled variable after dimensional reduction and Running the function with some appropriate parameters and fitting the XGBoost Classifiers Algorithm and getting the Best Parameters of the algorithm, Accuracy Score, Classification Report and Confusion Matrix between the predicted values and dependent test dataset and also the pickle file with the name XGBoost_resample."
+# 
+# 
+
+# In[55]:
+
+
+param ={'n_estimators':[100,500,1000]}
+FitModel(xres[feat_to_keep],yres,'XGBOOST',XGBClassifier(),param,cv=5)
+
+
+# #### "Loading the pickle file with the algorithm which gives highest accuracy score"
+# 
+# 
+
+# In[56]:
+
+
+model =pickle.load(open("Random Forest","rb"))
+
+
+# ### "Predicting the independent variable using the loaded pickle file and getting the accuracy score and best parameters of the loaded pickle file."
+# 
+# 
+
+# In[57]:
+
+
+pred1 = model.predict (xtest)
+print (accuracy_score (pred1,ytest))
+print(model.best_params_)
+
+
+# In[ ]:
+
+
+
+
