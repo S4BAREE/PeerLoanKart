@@ -25,3 +25,4 @@ Fields in Data
 ### Business benefits
 Increase in profits up to 20% as NPA will be reduced due to loan disbursal for only good borrowers
 
+
